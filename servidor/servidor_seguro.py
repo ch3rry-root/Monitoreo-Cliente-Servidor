@@ -27,10 +27,10 @@ def listar_procesos():
 
 def iniciar_proceso(comando):
     if not comando:
-        return {"status": "error", "message": "Comando vacío"}
+        return {"estado": "error", "mensaje": "Comando vacío"}
 
     if shutil.which(comando.split()[0]) is None:
-        return {"status": "error", "message": "Comando no válido"}
+        return {"estado": "error", "mensaje": "Comando no válido"}
 
     try:
         proceso = subprocess.Popen(
@@ -38,21 +38,21 @@ def iniciar_proceso(comando):
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
         )
-        return {"status": "ok", "pid": proceso.pid}
+        return {"estado": "ok", "pid": proceso.pid}
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        return {"estado": "error", "mensaje": str(e)}
 
 
-def matar_proceso(pid):
+def terminar_proceso(pid):
     try:
         proceso = psutil.Process(int(pid))
         proceso.terminate()
-        return {"status": "ok", "message": f"Proceso {pid} terminado"}
+        return {"estado": "ok", "mensaje": f"Proceso {pid} terminado"}
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        return {"estado": "error", "mensaje": str(e)}
 
 
-def monitor_sistema():
+def monitorear_sistema():
     return {
         "cpu": psutil.cpu_percent(interval=1),
         "memoria": psutil.virtual_memory().percent
@@ -74,20 +74,20 @@ def manejar_cliente(connstream, addr):
                 break
 
             mensaje = json.loads(data.decode())
-            accion = mensaje.get("action")
+            accion = mensaje.get("accion")
 
             # ======================
             # AUTENTICACION
             # ======================
-            if accion == "AUTH":
-                usuario = mensaje.get("username")
+            if accion == "AUTENTICAR":
+                usuario = mensaje.get("usuario")
                 password_hash = mensaje.get("password_hash")
 
                 if usuario == USUARIO_VALIDO and password_hash == PASSWORD_HASH:
                     autenticado = True
-                    respuesta = {"status": "ok", "message": "Autenticado"}
+                    respuesta = {"estado": "ok", "mensaje": "Autenticado"}
                 else:
-                    respuesta = {"status": "error", "message": "Credenciales inválidas"}
+                    respuesta = {"estado": "error", "mensaje": "Credenciales inválidas"}
 
                 connstream.sendall(json.dumps(respuesta).encode())
                 continue
@@ -96,7 +96,7 @@ def manejar_cliente(connstream, addr):
             # BLOQUEO SI NO AUTH
             # ======================
             if not autenticado:
-                respuesta = {"status": "error", "message": "No autenticado"}
+                respuesta = {"estado": "error", "mensaje": "No autenticado"}
                 connstream.sendall(json.dumps(respuesta).encode())
                 continue
 
@@ -104,20 +104,20 @@ def manejar_cliente(connstream, addr):
             # ACCIONES
             # ======================
 
-            if accion == "LIST":
+            if accion == "LISTAR":
                 respuesta = listar_procesos()
 
-            elif accion == "START":
-                respuesta = iniciar_proceso(mensaje.get("command"))
+            elif accion == "INICIAR":
+                respuesta = iniciar_proceso(mensaje.get("comando"))
 
-            elif accion == "KILL":
-                respuesta = matar_proceso(mensaje.get("pid"))
+            elif accion == "TERMINAR":
+                respuesta = terminar_proceso(mensaje.get("pid"))
 
-            elif accion == "MONITOR_SYSTEM":
-                respuesta = monitor_sistema()
+            elif accion == "MONITOREAR":
+                respuesta = monitorear_sistema()
 
             else:
-                respuesta = {"status": "error", "message": "Acción desconocida"}
+                respuesta = {"estado": "error", "mensaje": "Acción desconocida"}
 
             connstream.sendall(json.dumps(respuesta).encode())
 
@@ -158,6 +158,7 @@ def iniciar_servidor():
             args=(connstream, addr)
         )
         thread.start()
+
 
 if __name__ == "__main__":
     iniciar_servidor()
