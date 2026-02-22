@@ -2,6 +2,7 @@ import customtkinter as ctk
 import threading
 from cliente.utils import centrar_ventana
 from cliente.constantes import COLOR_PRIMARIO, COLOR_HOVER
+from cliente.logger import registrar_log  # <-- nuevo
 
 class VentanaLogin(ctk.CTkToplevel):
     def __init__(self, parent, cliente, callback_activar_botones):
@@ -9,15 +10,12 @@ class VentanaLogin(ctk.CTkToplevel):
         self.parent = parent
         self.cliente = cliente
         self.callback_activar_botones = callback_activar_botones
-
         self.title("Login seguro")
         centrar_ventana(self, 350, 300)
-
         self.transient(parent)
         self.grab_set()
         self.lift()
         self.focus_force()
-
         self.crear_widgets()
 
     def crear_widgets(self):
@@ -44,18 +42,19 @@ class VentanaLogin(ctk.CTkToplevel):
     def conectar(self):
         def tarea():
             try:
-                respuesta = self.cliente.conectar(
-                    self.ip_entry.get(),
-                    self.user_entry.get(),
-                    self.pass_entry.get()
-                )
+                ip = self.ip_entry.get()
+                usuario = self.user_entry.get()
+                respuesta = self.cliente.conectar(ip, usuario, self.pass_entry.get())
                 if respuesta["status"] == "ok":
                     self.after(0, self.login_ok)
+                    registrar_log(f"Login exitoso: usuario '{usuario}' desde IP {ip}")
                 else:
                     self.after(0, lambda: self.parent.panel_actual.escribir("[X] Login fallido"))
+                    registrar_log(f"Login fallido: usuario '{usuario}' desde IP {ip}")
             except Exception as e:
                 error_msg = str(e)
                 self.after(0, lambda msg=error_msg: self.parent.panel_actual.escribir(f"[ERROR] {msg}"))
+                registrar_log(f"Error de conexión desde IP {ip}: {error_msg}")
 
         threading.Thread(target=tarea, daemon=True).start()
 

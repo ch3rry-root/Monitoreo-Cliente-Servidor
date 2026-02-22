@@ -1,19 +1,25 @@
-# cliente/gui/panel_recursos.py
 import customtkinter as ctk
 import threading
+import time
 import matplotlib
 matplotlib.use('TkAgg')
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 from cliente import acciones
 from cliente.constantes import COLOR_PRIMARIO
+from .mensaje_personalizado import MensajePersonalizado
 
 class PanelRecursos(ctk.CTkFrame):
-    def __init__(self, parent, cliente):
+    def __init__(self, parent, cliente, callback_alerta=None):
         super().__init__(parent, fg_color="transparent")
         self.cliente = cliente
+        self.callback_alerta = callback_alerta
         self.monitoreando = False
         self.after_id = None
+        
+        # Control de alertas para que no se repitan mientras el recurso sigue alto
+        self.alerta_cpu_activa = False   # True si ya mostramos alerta de CPU y sigue alta
+        self.alerta_mem_activa = False   # True si ya mostramos alerta de memoria y sigue alta
         
         # Historial de datos (últimos 60 puntos)
         self.tiempos = list(range(60))
@@ -23,11 +29,9 @@ class PanelRecursos(ctk.CTkFrame):
         self.crear_graficos()
     
     def crear_graficos(self):
-        # Frame superior para los gráficos
         self.frame_graficos = ctk.CTkFrame(self, fg_color="transparent")
         self.frame_graficos.pack(expand=True, fill="both")
         
-        # Figura de matplotlib
         self.fig = Figure(figsize=(8, 4), dpi=100, facecolor='#2b2b2b')
         
         # Gráfico de CPU
@@ -52,9 +56,12 @@ class PanelRecursos(ctk.CTkFrame):
         
         self.fig.tight_layout()
         
-        # Canvas para mostrar la figura
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame_graficos)
         self.canvas.get_tk_widget().pack(expand=True, fill="both")
+    
+    def mostrar_alerta_emergente(self, titulo, mensaje, tipo="error"):
+        """Muestra una ventana emergente personalizada."""
+        self.after(0, lambda: MensajePersonalizado(self.winfo_toplevel(), titulo, mensaje, tipo))
     
     def agregar_dato(self, cpu, memoria):
         # Rotar historial
@@ -67,13 +74,38 @@ class PanelRecursos(ctk.CTkFrame):
         self.linea_cpu.set_data(self.tiempos, self.cpu_hist)
         self.linea_mem.set_data(self.tiempos, self.mem_hist)
         
-        # Ajustar ejes si es necesario
         self.ax_cpu.relim()
         self.ax_cpu.autoscale_view(scalex=False)
         self.ax_mem.relim()
         self.ax_mem.autoscale_view(scalex=False)
         
         self.canvas.draw_idle()
+        
+        # --- ALERTAS INTELIGENTES ---
+        # CPU
+        if cpu > 90:
+            if not self.alerta_cpu_activa:
+                self.alerta_cpu_activa = True
+                self.mostrar_alerta_emergente(
+                    "Alerta de CPU",
+                    f"CPU al {cpu:.1f}% - Alto consumo",
+                    "error"
+                )
+        else:
+            # Si baja del umbral, reseteamos el flag para que pueda volver a alertar si sube otra vez
+            self.alerta_cpu_activa = False
+        
+        # Memoria
+        if memoria > 95:
+            if not self.alerta_mem_activa:
+                self.alerta_mem_activa = True
+                self.mostrar_alerta_emergente(
+                    "Alerta de Memoria",
+                    f"Memoria al {memoria:.1f}% - Alto consumo",
+                    "error"
+                )
+        else:
+            self.alerta_mem_activa = False
     
     def obtener_recursos_periodicamente(self):
         if not self.monitoreando:

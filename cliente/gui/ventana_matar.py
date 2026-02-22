@@ -4,6 +4,7 @@ from cliente.utils import centrar_ventana
 from cliente.constantes import COLOR_PRIMARIO, COLOR_HOVER
 from cliente import acciones
 from .mensaje_personalizado import MensajePersonalizado
+from cliente.logger import registrar_log  # <-- nuevo
 
 class VentanaMatar(ctk.CTkToplevel):
     def __init__(self, parent, cliente):
@@ -11,25 +12,20 @@ class VentanaMatar(ctk.CTkToplevel):
         self.parent = parent
         self.cliente = cliente
         self.procesando = False
-
         self.title("Matar proceso")
         centrar_ventana(self, 350, 200)
-
         self.transient(parent)
         self.grab_set()
         self.focus()
-
         self.crear_widgets()
         self.protocol("WM_DELETE_WINDOW", self.cerrar_seguro)
 
     def crear_widgets(self):
         self.label = ctk.CTkLabel(self, text="PID")
         self.label.pack(pady=10)
-
         self.pid_entry = ctk.CTkEntry(self)
         self.pid_entry.pack()
         self.pid_entry.focus()
-
         self.btn_matar = ctk.CTkButton(
             self,
             text="Terminar",
@@ -46,10 +42,7 @@ class VentanaMatar(ctk.CTkToplevel):
     def matar(self):
         if self.procesando:
             return
-
         pid_texto = self.pid_entry.get().strip()
-
-        # Validar que sea un número entero
         if not pid_texto.isdigit():
             MensajePersonalizado(
                 self.parent,
@@ -57,6 +50,7 @@ class VentanaMatar(ctk.CTkToplevel):
                 "Ingrese solo números enteros para el PID",
                 tipo="error"
             )
+            registrar_log(f"Intento de matar proceso con PID inválido: '{pid_texto}'")
             return
 
         self.procesando = True
@@ -69,11 +63,14 @@ class VentanaMatar(ctk.CTkToplevel):
                 if data.get("estado") == "ok":
                     mensaje = data.get("mensaje", f"Proceso {pid} terminado")
                     self.after(0, lambda m=mensaje: MensajePersonalizado(self.parent, "Éxito", m, tipo="exito"))
+                    registrar_log(f"Proceso terminado: PID {pid}")
                 else:
                     error_msg = data.get("mensaje", "Error desconocido")
                     self.after(0, lambda e=error_msg: MensajePersonalizado(self.parent, "Error", f"No se pudo terminar el proceso:\n{e}", tipo="error"))
+                    registrar_log(f"Error al terminar proceso PID {pid}: {error_msg}")
             except Exception as e:
                 self.after(0, lambda e=e: MensajePersonalizado(self.parent, "Error", f"Excepción: {e}", tipo="error"))
+                registrar_log(f"Excepción al terminar proceso PID {pid}: {e}")
             finally:
                 self.after(500, self.cerrar_seguro)
 

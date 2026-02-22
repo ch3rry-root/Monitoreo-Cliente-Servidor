@@ -3,7 +3,7 @@ import threading
 from cliente.constantes import COLOR_PRIMARIO, COLOR_HOVER, FONDO_DERECHA
 from cliente.utils import centrar_ventana
 from cliente.cliente_red import ClienteSeguro
-from cliente import acciones  # Importación absoluta
+from cliente import acciones
 from .ventana_login import VentanaLogin
 from .ventana_iniciar import VentanaIniciar
 from .ventana_matar import VentanaMatar
@@ -20,7 +20,7 @@ class App(ctk.CTk):
 
         self.cliente = ClienteSeguro()
 
-        # Control de monitoreo en tiempo real (se maneja desde el panel de procesos)
+        # Control de monitoreo en tiempo real
         self.panel_actual = None
 
         self.grid_columnconfigure(1, weight=1)
@@ -29,7 +29,7 @@ class App(ctk.CTk):
         self.crear_menu()
         self.crear_panel_datos()
 
-        # Instancias de ventanas (para reutilizarlas si es necesario)
+        # Instancias de ventanas
         self.ventana_login = None
         self.ventana_iniciar = None
         self.ventana_matar = None
@@ -71,30 +71,26 @@ class App(ctk.CTk):
         return boton
 
     def activar_botones(self):
-        """Activa los botones después del login."""
         self.btn_procesos.configure(state="normal")
         self.btn_recursos.configure(state="normal")
         self.btn_iniciar.configure(state="normal")
         self.btn_matar.configure(state="normal")
 
     # ======================
-    # PANEL DERECHO (contenedor dinámico)
+    # PANEL DERECHO
     # ======================
     def crear_panel_datos(self):
         self.panel = ctk.CTkFrame(self, fg_color=FONDO_DERECHA)
         self.panel.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
 
-        # Frame interior que contendrá los paneles
         self.panel_contenido = ctk.CTkFrame(self.panel, fg_color="transparent")
         self.panel_contenido.pack(expand=True, fill="both", padx=15, pady=15)
 
-        # Mostrar panel de texto por defecto
         self.mostrar_panel_texto()
 
     def mostrar_panel_texto(self):
-        """Cambia al panel de texto."""
         if self.panel_actual:
-            self.panel_actual.detener()  # Si el panel actual tiene método detener, lo llama
+            self.panel_actual.detener()
             self.panel_actual.destroy()
 
         self.panel_actual = PanelTexto(self.panel_contenido)
@@ -102,7 +98,6 @@ class App(ctk.CTk):
         self.panel_actual.escribir("Sistema iniciado.")
 
     def mostrar_panel_procesos(self):
-        """Cambia al panel de procesos en tiempo real."""
         if self.panel_actual:
             self.panel_actual.detener()
             self.panel_actual.destroy()
@@ -112,17 +107,28 @@ class App(ctk.CTk):
         self.panel_actual.iniciar_monitoreo()
 
     def mostrar_panel_recursos(self):
-        """Cambia al panel de recursos con gráficos."""
         if self.panel_actual:
             self.panel_actual.detener()
             self.panel_actual.destroy()
-        
-        self.panel_actual = PanelRecursos(self.panel_contenido, self.cliente)
+
+        # Pasamos el callback de alerta
+        self.panel_actual = PanelRecursos(self.panel_contenido, self.cliente, self.mostrar_alerta)
         self.panel_actual.pack(expand=True, fill="both")
         self.panel_actual.iniciar_monitoreo()
 
     # ======================
-    # ACCIONES DE LOS BOTONES
+    # ALERTAS
+    # ======================
+    def mostrar_alerta(self, mensaje):
+        """Muestra una alerta en el panel actual si es de texto, o en consola."""
+        if isinstance(self.panel_actual, PanelTexto):
+            self.panel_actual.escribir(f"⚠️ {mensaje}")
+        else:
+            # Si no hay panel de texto, imprimimos (podríamos poner un popup)
+            print(f"ALERTA: {mensaje}")
+
+    # ======================
+    # ACCIONES
     # ======================
     def mostrar_procesos(self):
         self.mostrar_panel_procesos()
