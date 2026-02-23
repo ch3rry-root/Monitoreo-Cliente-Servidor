@@ -2,7 +2,8 @@ import customtkinter as ctk
 import threading
 from cliente.utils import centrar_ventana
 from cliente.constantes import COLOR_PRIMARIO, COLOR_HOVER
-from cliente.logger import registrar_log  # <-- nuevo
+from cliente.logger import registrar_log
+from .mensaje_personalizado import MensajePersonalizado
 
 class VentanaLogin(ctk.CTkToplevel):
     def __init__(self, parent, cliente, callback_activar_botones):
@@ -41,24 +42,40 @@ class VentanaLogin(ctk.CTkToplevel):
 
     def conectar(self):
         def tarea():
+            # Capturamos los valores al inicio del hilo
+            ip = self.ip_entry.get()
+            usuario = self.user_entry.get()
+            password = self.pass_entry.get()
+
             try:
-                ip = self.ip_entry.get()
-                usuario = self.user_entry.get()
-                respuesta = self.cliente.conectar(ip, usuario, self.pass_entry.get())
+                respuesta = self.cliente.conectar(ip, usuario, password)
+
                 if respuesta["status"] == "ok":
-                    self.after(0, self.login_ok)
                     registrar_log(f"Login exitoso: usuario '{usuario}' desde IP {ip}")
+                    # Capturamos usuario en el lambda
+                    self.after(0, lambda u=usuario: MensajePersonalizado(
+                        self.parent, "Éxito", f"Bienvenido {u}", tipo="exito"
+                    ))
+                    self.after(0, self.login_ok)
                 else:
-                    self.after(0, lambda: self.parent.panel_actual.escribir("[X] Login fallido"))
                     registrar_log(f"Login fallido: usuario '{usuario}' desde IP {ip}")
+                    self.after(0, lambda: MensajePersonalizado(
+                        self.parent, "Error", "Credenciales incorrectas", tipo="error"
+                    ))
+                    self.after(500, self.destroy)
+
             except Exception as e:
                 error_msg = str(e)
-                self.after(0, lambda msg=error_msg: self.parent.panel_actual.escribir(f"[ERROR] {msg}"))
                 registrar_log(f"Error de conexión desde IP {ip}: {error_msg}")
+                # Capturamos ip y error_msg
+                self.after(0, lambda i=ip, msg=error_msg: MensajePersonalizado(
+                    self.parent, "Error de conexión",
+                    f"No se pudo conectar a {i}:\n{msg}", tipo="error"
+                ))
+                self.after(500, self.destroy)
 
         threading.Thread(target=tarea, daemon=True).start()
 
     def login_ok(self):
-        self.parent.panel_actual.escribir("[✓] Autenticado correctamente")
         self.callback_activar_botones()
         self.destroy()

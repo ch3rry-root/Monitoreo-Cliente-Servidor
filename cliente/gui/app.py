@@ -10,6 +10,7 @@ from .ventana_matar import VentanaMatar
 from .panel_texto import PanelTexto
 from .panel_procesos import PanelProcesos
 from .panel_recursos import PanelRecursos
+from .panel_logs import PanelLogs  # <-- NUEVO
 
 class App(ctk.CTk):
     def __init__(self):
@@ -54,6 +55,7 @@ class App(ctk.CTk):
         self.btn_recursos = self.crear_boton("Recursos", self.mostrar_recursos, False)
         self.btn_iniciar = self.crear_boton("Iniciar Proceso", self.abrir_ventana_iniciar, False)
         self.btn_matar = self.crear_boton("Matar Proceso", self.abrir_ventana_matar, False)
+        self.btn_logs = self.crear_boton("Ver Logs", self.mostrar_logs, False)  # <-- NUEVO
 
     def crear_boton(self, texto, comando, activo=True):
         boton = ctk.CTkButton(
@@ -75,6 +77,7 @@ class App(ctk.CTk):
         self.btn_recursos.configure(state="normal")
         self.btn_iniciar.configure(state="normal")
         self.btn_matar.configure(state="normal")
+        self.btn_logs.configure(state="normal")  # <-- NUEVO
 
     # ======================
     # PANEL DERECHO
@@ -116,6 +119,15 @@ class App(ctk.CTk):
         self.panel_actual.pack(expand=True, fill="both")
         self.panel_actual.iniciar_monitoreo()
 
+    def mostrar_panel_logs(self):  # <-- NUEVO
+        """Cambia al panel de logs."""
+        if self.panel_actual:
+            self.panel_actual.detener()
+            self.panel_actual.destroy()
+
+        self.panel_actual = PanelLogs(self.panel_contenido)
+        self.panel_actual.pack(expand=True, fill="both")
+
     # ======================
     # ALERTAS
     # ======================
@@ -135,6 +147,9 @@ class App(ctk.CTk):
 
     def mostrar_recursos(self):
         self.mostrar_panel_recursos()
+
+    def mostrar_logs(self):  # <-- NUEVO
+        self.mostrar_panel_logs()
 
     def abrir_ventana_login(self):
         if self.ventana_login is None or not self.ventana_login.winfo_exists():
