@@ -6,13 +6,16 @@ from cliente.utils import centrar_ventana
 from cliente.constantes import COLOR_PRIMARIO, COLOR_HOVER
 from cliente.logger import registrar_log
 from .mensaje_personalizado import MensajePersonalizado
+from cliente.cliente_red import ClienteSeguro  # Importamos la clase para crear el cliente
 
 class VentanaLogin(ctk.CTkToplevel):
-    def __init__(self, parent, cliente, callback_activar_botones):
+    def __init__(self, parent, callback_nueva_pestana):
+        """
+        callback_nueva_pestana: función que recibe (cliente, ip, usuario, cert_path)
+        """
         super().__init__(parent)
         self.parent = parent
-        self.cliente = cliente
-        self.callback_activar_botones = callback_activar_botones
+        self.callback_nueva_pestana = callback_nueva_pestana
         self.title("Login seguro")
         centrar_ventana(self, 400, 380)
         self.transient(parent)
@@ -42,7 +45,7 @@ class VentanaLogin(ctk.CTkToplevel):
         self.pass_entry.pack()
         self.pass_entry.bind("<KeyRelease>", self.validar_campos)
 
-        # Certificado (obligatorio)
+        # Certificado
         ctk.CTkLabel(self, text="Certificado del servidor").pack(pady=5)
         frame_cert = ctk.CTkFrame(self, fg_color="transparent")
         frame_cert.pack(pady=5)
@@ -92,7 +95,6 @@ class VentanaLogin(ctk.CTkToplevel):
             self.validar_campos()
 
     def validar_campos(self, event=None):
-        # Si la ventana ya no existe, salir
         if not self.winfo_exists():
             return
         ip = self.ip_entry.get().strip()
@@ -115,13 +117,11 @@ class VentanaLogin(ctk.CTkToplevel):
                 self.lbl_info.configure(text="Complete todos los campos", text_color="orange")
 
     def conectar(self):
-        # Eliminar bindings para evitar eventos residuales
+        # Eliminar bindings y deshabilitar controles
         self.ip_entry.unbind("<KeyRelease>")
         self.user_entry.unbind("<KeyRelease>")
         self.pass_entry.unbind("<KeyRelease>")
         self.cert_entry.unbind("<KeyRelease>")
-
-        # Deshabilitar todos los controles
         self.btn_conectar.configure(state="disabled")
         self.ip_entry.configure(state="disabled")
         self.user_entry.configure(state="disabled")
@@ -129,22 +129,25 @@ class VentanaLogin(ctk.CTkToplevel):
         self.cert_entry.configure(state="disabled")
         self.btn_examinar.configure(state="disabled")
 
+        # Recoger datos
+        ip = self.ip_entry.get().strip()
+        usuario = self.user_entry.get().strip()
+        password = self.pass_entry.get()
+        cert_path = self.cert_entry.get().strip()
+
         def tarea():
-            ip = self.ip_entry.get().strip()
-            usuario = self.user_entry.get().strip()
-            password = self.pass_entry.get()
-            cert_path = self.cert_entry.get().strip()
-
+            # Creamos un cliente nuevo para esta conexión
+            cliente = ClienteSeguro()
             try:
-                respuesta = self.cliente.conectar(ip, usuario, password, cert_path)
-
+                respuesta = cliente.conectar(ip, usuario, password, cert_path)
                 if respuesta["status"] == "ok":
                     registrar_log(f"Login exitoso: usuario '{usuario}' desde IP {ip}")
-                    self.after(0, lambda u=usuario: self.mostrar_bienvenida(u))
+                    # Llamar al callback con el cliente ya conectado
+                    self.after(0, lambda: self.callback_nueva_pestana(cliente, ip, usuario, cert_path))
+                    self.after(0, self.cerrar_seguro)
                 else:
                     registrar_log(f"Login fallido: usuario '{usuario}' desde IP {ip}")
                     self.after(0, lambda: self.mostrar_error("Credenciales incorrectas"))
-
             except Exception as e:
                 error_msg = str(e)
                 registrar_log(f"Error de conexión desde IP {ip}: {error_msg}")
@@ -152,23 +155,12 @@ class VentanaLogin(ctk.CTkToplevel):
 
         threading.Thread(target=tarea, daemon=True).start()
 
-    def mostrar_bienvenida(self, usuario):
-        # Liberar grab antes de destruir
-        self.grab_release()
-        # Mostrar mensaje
-        MensajePersonalizado(self.parent, "Éxito", f"Bienvenido {usuario}", tipo="exito")
-        # Activar botones en la ventana principal
-        self.callback_activar_botones()
-        # Dar un pequeño retraso antes de destruir para asegurar que el mensaje se vea
-        self.after(100, self.cerrar_seguro)
-
     def mostrar_error(self, mensaje):
         self.grab_release()
         MensajePersonalizado(self.parent, "Error", mensaje, tipo="error")
         self.after(100, self.cerrar_seguro)
 
     def cerrar_seguro(self):
-        """Destruye la ventana de forma segura."""
         try:
             self.destroy()
         except:
