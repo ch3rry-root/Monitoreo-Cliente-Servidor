@@ -34,6 +34,8 @@ class ClienteSeguro:
         context.load_verify_locations(cafile=cert_path)
         context.check_hostname = False
         context.verify_mode = ssl.CERT_REQUIRED
+        # Forzar TLS 1.2 como mínimo (evita versiones antiguas problemáticas)
+        context.minimum_version = ssl.TLSVersion.TLSv1_2
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.conn = context.wrap_socket(sock, server_hostname=ip)

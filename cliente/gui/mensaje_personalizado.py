@@ -21,7 +21,7 @@ class MensajePersonalizado(ctk.CTkToplevel):
         # Icono según tipo
         if tipo == "exito":
             icono = "✓"
-            color_boton = COLOR_PRIMARIO
+            color_boton = "#4CAF50"   # Verde
         else:
             icono = "✗"
             color_boton = "#FF4444"  # Rojo
@@ -47,7 +47,7 @@ class MensajePersonalizado(ctk.CTkToplevel):
             self.marco,
             text="Aceptar",
             fg_color=color_boton,
-            hover_color=COLOR_HOVER,
+            hover_color="#45a049" if color_boton == "#4CAF50" else "#e57373",
             command=self.destroy,
             width=150,
             height=35

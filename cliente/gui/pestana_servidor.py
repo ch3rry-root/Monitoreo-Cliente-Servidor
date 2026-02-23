@@ -15,6 +15,8 @@ class PestanaServidor(ctk.CTkFrame):
         self.usuario = usuario
         self.callback_alerta = callback_alerta
         self.panel_actual = None
+        
+        # Mostrar panel de texto por defecto
         self.mostrar_panel_texto()
 
     def mostrar_panel_texto(self):

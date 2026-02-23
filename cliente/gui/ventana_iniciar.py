@@ -1,7 +1,7 @@
 import customtkinter as ctk
 import threading
 from cliente.utils import centrar_ventana
-from cliente.constantes import COLOR_PRIMARIO, COLOR_HOVER
+from cliente.constantes import COLOR_BOTONES, COLOR_HOVER
 from cliente import acciones
 from .mensaje_personalizado import MensajePersonalizado
 from cliente.logger import registrar_log  # <-- nuevo
@@ -29,7 +29,7 @@ class VentanaIniciar(ctk.CTkToplevel):
         self.btn_iniciar = ctk.CTkButton(
             self,
             text="Iniciar",
-            fg_color=COLOR_PRIMARIO,
+            fg_color=COLOR_BOTONES,
             hover_color=COLOR_HOVER,
             command=self.iniciar
         )
