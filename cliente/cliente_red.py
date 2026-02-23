@@ -30,10 +30,9 @@ class ClienteSeguro:
         return json.loads(data.decode())
 
     def conectar(self, ip, usuario, password, cert_path):
-        # Certificado obligatorio
         context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
         context.load_verify_locations(cafile=cert_path)
-        context.check_hostname = False  # Si usas IP, no verificar hostname
+        context.check_hostname = False
         context.verify_mode = ssl.CERT_REQUIRED
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -56,3 +55,12 @@ class ClienteSeguro:
     def enviar(self, data):
         self.enviar_json(data)
         return self.recibir_json()
+
+    def desconectar(self):
+        """Cierra la conexión activa si existe."""
+        if self.conn:
+            try:
+                self.conn.close()
+            except:
+                pass
+            self.conn = None

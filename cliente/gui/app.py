@@ -10,7 +10,7 @@ from .ventana_matar import VentanaMatar
 from .panel_texto import PanelTexto
 from .panel_procesos import PanelProcesos
 from .panel_recursos import PanelRecursos
-from .panel_logs import PanelLogs  # <-- NUEVO
+from .panel_logs import PanelLogs
 
 class App(ctk.CTk):
     def __init__(self):
@@ -21,7 +21,6 @@ class App(ctk.CTk):
 
         self.cliente = ClienteSeguro()
 
-        # Control de monitoreo en tiempo real
         self.panel_actual = None
 
         self.grid_columnconfigure(1, weight=1)
@@ -30,14 +29,10 @@ class App(ctk.CTk):
         self.crear_menu()
         self.crear_panel_datos()
 
-        # Instancias de ventanas
         self.ventana_login = None
         self.ventana_iniciar = None
         self.ventana_matar = None
 
-    # ======================
-    # MENU LATERAL
-    # ======================
     def crear_menu(self):
         self.menu = ctk.CTkFrame(self, width=220)
         self.menu.grid(row=0, column=0, sticky="ns")
@@ -55,7 +50,7 @@ class App(ctk.CTk):
         self.btn_recursos = self.crear_boton("Recursos", self.mostrar_recursos, False)
         self.btn_iniciar = self.crear_boton("Iniciar Proceso", self.abrir_ventana_iniciar, False)
         self.btn_matar = self.crear_boton("Matar Proceso", self.abrir_ventana_matar, False)
-        self.btn_logs = self.crear_boton("Ver Logs", self.mostrar_logs, False)  # <-- NUEVO
+        self.btn_logs = self.crear_boton("Ver Logs", self.mostrar_logs, False)
 
     def crear_boton(self, texto, comando, activo=True):
         boton = ctk.CTkButton(
@@ -73,15 +68,56 @@ class App(ctk.CTk):
         return boton
 
     def activar_botones(self):
+        """Activa los botones de acciones y cambia login por cerrar sesión."""
         self.btn_procesos.configure(state="normal")
         self.btn_recursos.configure(state="normal")
         self.btn_iniciar.configure(state="normal")
         self.btn_matar.configure(state="normal")
-        self.btn_logs.configure(state="normal")  # <-- NUEVO
+        self.btn_logs.configure(state="normal")
+        
+        # Cambiar botón de login a cerrar sesión
+        self.btn_login.configure(
+            text="Cerrar sesión",
+            fg_color="#FF4444",  # Rojo
+            hover_color="#FF6666",
+            command=self.cerrar_sesion
+        )
 
-    # ======================
-    # PANEL DERECHO
-    # ======================
+    def cerrar_sesion(self):
+        """Cierra la conexión y vuelve al estado inicial."""
+        # Detener monitoreo del panel actual
+        if self.panel_actual:
+            self.panel_actual.detener()
+            self.panel_actual.destroy()
+            self.panel_actual = None
+        
+        # Cerrar conexión del cliente
+        self.cliente.desconectar()
+        
+        # Restaurar panel de texto
+        self.mostrar_panel_texto()
+        self.panel_actual.escribir("Sesión cerrada.")
+        
+        # Restaurar botón de login
+        self.btn_login.configure(
+            text="Login",
+            fg_color=COLOR_PRIMARIO,
+            hover_color=COLOR_HOVER,
+            command=self.abrir_ventana_login
+        )
+        
+        # Deshabilitar botones de acciones
+        self.btn_procesos.configure(state="disabled")
+        self.btn_recursos.configure(state="disabled")
+        self.btn_iniciar.configure(state="disabled")
+        self.btn_matar.configure(state="disabled")
+        self.btn_logs.configure(state="disabled")
+        
+        # Resetear instancias de ventanas
+        self.ventana_login = None
+        self.ventana_iniciar = None
+        self.ventana_matar = None
+
     def crear_panel_datos(self):
         self.panel = ctk.CTkFrame(self, fg_color=FONDO_DERECHA)
         self.panel.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
@@ -114,13 +150,11 @@ class App(ctk.CTk):
             self.panel_actual.detener()
             self.panel_actual.destroy()
 
-        # Pasamos el callback de alerta
         self.panel_actual = PanelRecursos(self.panel_contenido, self.cliente, self.mostrar_alerta)
         self.panel_actual.pack(expand=True, fill="both")
         self.panel_actual.iniciar_monitoreo()
 
-    def mostrar_panel_logs(self):  # <-- NUEVO
-        """Cambia al panel de logs."""
+    def mostrar_panel_logs(self):
         if self.panel_actual:
             self.panel_actual.detener()
             self.panel_actual.destroy()
@@ -128,27 +162,19 @@ class App(ctk.CTk):
         self.panel_actual = PanelLogs(self.panel_contenido)
         self.panel_actual.pack(expand=True, fill="both")
 
-    # ======================
-    # ALERTAS
-    # ======================
     def mostrar_alerta(self, mensaje):
-        """Muestra una alerta en el panel actual si es de texto, o en consola."""
         if isinstance(self.panel_actual, PanelTexto):
             self.panel_actual.escribir(f"⚠️ {mensaje}")
         else:
-            # Si no hay panel de texto, imprimimos (podríamos poner un popup)
             print(f"ALERTA: {mensaje}")
 
-    # ======================
-    # ACCIONES
-    # ======================
     def mostrar_procesos(self):
         self.mostrar_panel_procesos()
 
     def mostrar_recursos(self):
         self.mostrar_panel_recursos()
 
-    def mostrar_logs(self):  # <-- NUEVO
+    def mostrar_logs(self):
         self.mostrar_panel_logs()
 
     def abrir_ventana_login(self):

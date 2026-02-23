@@ -1,8 +1,4 @@
 import customtkinter as ctk
-import datetime
-import os
-
-LOG_FILE = "actividades.log"
 
 def centrar_ventana(ventana, ancho=350, alto=300):
     """Centra una ventana en la pantalla."""

@@ -13,10 +13,6 @@ PORT = 5000
 USUARIO_VALIDO = "admin"
 PASSWORD_HASH = hashlib.sha256("admin123".encode()).hexdigest()
 
-# ==================================================
-# PROTOCOLO JSON SEGURO (FIX TCP STREAM)
-# ==================================================
-
 def recvall(conn, n):
     data = b""
     while len(data) < n:
@@ -42,9 +38,6 @@ def enviar_json(conn, obj):
     data = json.dumps(obj).encode()
     conn.sendall(len(data).to_bytes(4, "big") + data)
 
-# ==================================================
-# FUNCIONES UTILIDAD
-# ==================================================
 
 def listar_procesos():
     procesos = []
@@ -53,7 +46,6 @@ def listar_procesos():
     ):
         procesos.append(proc.info)
     return procesos
-
 
 def iniciar_proceso(comando):
 
@@ -74,7 +66,6 @@ def iniciar_proceso(comando):
     except Exception as e:
         return {"estado": "error", "mensaje": str(e)}
 
-
 def terminar_proceso(pid):
     try:
         proceso = psutil.Process(int(pid))
@@ -90,10 +81,6 @@ def monitorear_sistema():
         "memoria": psutil.virtual_memory().percent
     }
 
-# ==================================================
-# MANEJO CLIENTE
-# ==================================================
-
 def manejar_cliente(connstream, addr):
 
     print(f"[+] Cliente conectado: {addr}")
@@ -108,9 +95,6 @@ def manejar_cliente(connstream, addr):
 
             accion = mensaje.get("accion")
 
-            # ======================
-            # AUTENTICACION
-            # ======================
             if accion == "AUTENTICAR":
 
                 usuario = mensaje.get("usuario")
@@ -124,37 +108,25 @@ def manejar_cliente(connstream, addr):
 
                 enviar_json(connstream, respuesta)
                 continue
-
-            # ======================
-            # BLOQUEO SI NO AUTH
-            # ======================
             if not autenticado:
                 enviar_json(connstream,
                             {"estado": "error", "mensaje": "No autenticado"})
                 continue
 
-            # ======================
-            # ACCIONES
-            # ======================
 
             if accion == "LISTAR":
                 respuesta = listar_procesos()
-
             elif accion == "INICIAR":
                 respuesta = iniciar_proceso(mensaje.get("comando"))
-
             elif accion == "TERMINAR":
                 respuesta = terminar_proceso(mensaje.get("pid"))
-
             elif accion == "MONITOREAR":
                 respuesta = monitorear_sistema()
-
             else:
                 respuesta = {
                     "estado": "error",
                     "mensaje": "Acción desconocida"
                 }
-
             enviar_json(connstream, respuesta)
 
     except Exception as e:
@@ -163,10 +135,6 @@ def manejar_cliente(connstream, addr):
     finally:
         connstream.close()
         print(f"[-] Cliente desconectado: {addr}")
-
-# ==================================================
-# SERVIDOR TLS
-# ==================================================
 
 def iniciar_servidor():
 

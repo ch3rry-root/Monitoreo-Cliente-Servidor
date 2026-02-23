@@ -21,7 +21,7 @@ class VentanaLogin(ctk.CTkToplevel):
         self.focus_force()
         
         self.crear_widgets()
-        self.validar_campos()  # Inicialmente deshabilitado
+        self.validar_campos()
 
     def crear_widgets(self):
         # IP
@@ -92,6 +92,9 @@ class VentanaLogin(ctk.CTkToplevel):
             self.validar_campos()
 
     def validar_campos(self, event=None):
+        # Si la ventana ya no existe, salir
+        if not self.winfo_exists():
+            return
         ip = self.ip_entry.get().strip()
         usuario = self.user_entry.get().strip()
         password = self.pass_entry.get().strip()
@@ -112,7 +115,19 @@ class VentanaLogin(ctk.CTkToplevel):
                 self.lbl_info.configure(text="Complete todos los campos", text_color="orange")
 
     def conectar(self):
+        # Eliminar bindings para evitar eventos residuales
+        self.ip_entry.unbind("<KeyRelease>")
+        self.user_entry.unbind("<KeyRelease>")
+        self.pass_entry.unbind("<KeyRelease>")
+        self.cert_entry.unbind("<KeyRelease>")
+
+        # Deshabilitar todos los controles
         self.btn_conectar.configure(state="disabled")
+        self.ip_entry.configure(state="disabled")
+        self.user_entry.configure(state="disabled")
+        self.pass_entry.configure(state="disabled")
+        self.cert_entry.configure(state="disabled")
+        self.btn_examinar.configure(state="disabled")
 
         def tarea():
             ip = self.ip_entry.get().strip()
@@ -125,28 +140,36 @@ class VentanaLogin(ctk.CTkToplevel):
 
                 if respuesta["status"] == "ok":
                     registrar_log(f"Login exitoso: usuario '{usuario}' desde IP {ip}")
-                    self.after(0, lambda u=usuario: MensajePersonalizado(
-                        self.parent, "Éxito", f"Bienvenido {u}", tipo="exito"
-                    ))
-                    self.after(0, self.login_ok)
+                    self.after(0, lambda u=usuario: self.mostrar_bienvenida(u))
                 else:
                     registrar_log(f"Login fallido: usuario '{usuario}' desde IP {ip}")
-                    self.after(0, lambda: MensajePersonalizado(
-                        self.parent, "Error", "Credenciales incorrectas", tipo="error"
-                    ))
-                    self.after(500, self.destroy)
+                    self.after(0, lambda: self.mostrar_error("Credenciales incorrectas"))
 
             except Exception as e:
                 error_msg = str(e)
                 registrar_log(f"Error de conexión desde IP {ip}: {error_msg}")
-                self.after(0, lambda i=ip, msg=error_msg: MensajePersonalizado(
-                    self.parent, "Error de conexión",
-                    f"No se pudo conectar a {i}:\n{msg}", tipo="error"
-                ))
-                self.after(500, self.destroy)
+                self.after(0, lambda msg=error_msg: self.mostrar_error(f"No se pudo conectar:\n{msg}"))
 
         threading.Thread(target=tarea, daemon=True).start()
 
-    def login_ok(self):
+    def mostrar_bienvenida(self, usuario):
+        # Liberar grab antes de destruir
+        self.grab_release()
+        # Mostrar mensaje
+        MensajePersonalizado(self.parent, "Éxito", f"Bienvenido {usuario}", tipo="exito")
+        # Activar botones en la ventana principal
         self.callback_activar_botones()
-        self.destroy()
+        # Dar un pequeño retraso antes de destruir para asegurar que el mensaje se vea
+        self.after(100, self.cerrar_seguro)
+
+    def mostrar_error(self, mensaje):
+        self.grab_release()
+        MensajePersonalizado(self.parent, "Error", mensaje, tipo="error")
+        self.after(100, self.cerrar_seguro)
+
+    def cerrar_seguro(self):
+        """Destruye la ventana de forma segura."""
+        try:
+            self.destroy()
+        except:
+            pass
