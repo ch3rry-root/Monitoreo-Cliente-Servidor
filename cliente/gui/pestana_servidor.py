@@ -1,6 +1,6 @@
 # cliente/gui/pestana_servidor.py
 import customtkinter as ctk
-from .panel_texto import PanelTexto
+
 from .panel_procesos import PanelProcesos
 from .panel_recursos import PanelRecursos
 from .panel_logs import PanelLogs
@@ -17,12 +17,6 @@ class PestanaServidor(ctk.CTkFrame):
         self.icon_manager = icon_manager
         self.callback_alerta = callback_alerta
         self.panel_actual = None
-        
-        # Mostrar panel de texto por defecto
-        self.mostrar_panel_texto()
-
-    def mostrar_panel_texto(self):
-        self._cambiar_panel(PanelTexto(self))
 
     def mostrar_panel_procesos(self):
         panel = PanelProcesos(self, self.cliente)
