@@ -9,25 +9,27 @@ from .mensaje_personalizado import MensajePersonalizado
 from cliente.cliente_red import ClienteSeguro
 
 class VentanaLogin(ctk.CTkToplevel):
-    def __init__(self, parent, callback_nueva_pestana):
+    def __init__(self, parent, callback_nueva_pestana, icon_manager):
         super().__init__(parent)
         self.parent = parent
         self.callback_nueva_pestana = callback_nueva_pestana
+        self.icon_manager = icon_manager
         self.title("Nueva conexión segura")
-        centrar_ventana(self, 450, 450)  # Un poco más grande
+        centrar_ventana(self, 450, 450)
         self.transient(parent)
         self.grab_set()
         self.lift()
         self.focus_force()
         
-        # Configurar tema
         self.configure(fg_color="#2b2b2b")
         
         self.crear_widgets()
         self.validar_campos()
+        
+        # Establecer icono de ventana
+        self.icon_manager.set_window_icon(self, "connect")
 
     def crear_widgets(self):
-
         # IP
         ctk.CTkLabel(self, text="🌐 Dirección IP:", anchor="w").pack(pady=(5,0), padx=40, fill="x")
         self.ip_entry = ctk.CTkEntry(self, placeholder_text="ej. 192.168.1.100", height=35)
@@ -160,7 +162,13 @@ class VentanaLogin(ctk.CTkToplevel):
 
     def mostrar_error(self, mensaje):
         self.grab_release()
-        MensajePersonalizado(self.parent, "Error", mensaje, tipo="error")
+        MensajePersonalizado(
+            self.parent, 
+            "Error", 
+            mensaje, 
+            tipo="error",
+            icon_manager=self.icon_manager
+        )
         self.after(100, self.cerrar_seguro)
 
     def cerrar_seguro(self):

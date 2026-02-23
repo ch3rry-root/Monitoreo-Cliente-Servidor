@@ -5,16 +5,21 @@ from .ventana_login import VentanaLogin
 from .ventana_iniciar import VentanaIniciar
 from .ventana_matar import VentanaMatar
 from .pestana_servidor import PestanaServidor
+from .icon_manager import IconManager  # <-- nuevo
 
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Sistema de Monitoreo")
-        centrar_ventana(self, 1200, 700)  # Un poco más grande
+        centrar_ventana(self, 1200, 700)
 
-        # Configurar tema
         ctk.set_appearance_mode("dark")
         self.configure(fg_color="#1a1a1a")
+
+        # Inicializar gestor de iconos
+        self.icon_manager = IconManager()
+        # Opcional: establecer icono de la ventana principal
+        self.icon_manager.set_window_icon(self, "app")
 
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
@@ -23,7 +28,7 @@ class App(ctk.CTk):
         self.crear_panel_derecho()
         self.crear_barra_estado()
 
-        self.pestanas = {}  # nombre -> objeto PestanaServidor
+        self.pestanas = {}
         self.ventana_login = None
         self.ventana_iniciar = None
         self.ventana_matar = None
@@ -35,7 +40,7 @@ class App(ctk.CTk):
         self.menu = ctk.CTkFrame(self, width=250, corner_radius=0)
         self.menu.grid(row=0, column=0, sticky="ns", rowspan=2)
 
-        # Título con icono
+        # Título
         titulo = ctk.CTkLabel(
             self.menu,
             text="Panel",
@@ -45,18 +50,56 @@ class App(ctk.CTk):
         titulo.pack(pady=(30, 20))
 
         # Botones con iconos
-        self.btn_nueva_conexion = self.crear_boton("➕ Nueva conexión", self.abrir_ventana_login)
-        self.btn_procesos = self.crear_boton("📋 Procesos", self.mostrar_procesos, False)
-        self.btn_recursos = self.crear_boton("📈 Recursos", self.mostrar_recursos, False)
-        self.btn_iniciar = self.crear_boton("▶ Iniciar Proceso", self.abrir_ventana_iniciar, False)
-        self.btn_matar = self.crear_boton("⛔ Matar Proceso", self.abrir_ventana_matar, False)
-        self.btn_logs = self.crear_boton("📜 Ver Logs", self.mostrar_logs, False)
-        self.btn_cerrar_pestana = self.crear_boton("❌ Cerrar pestaña", self.cerrar_pestana_activa, False)
+        self.btn_nueva_conexion = self.crear_boton_con_icono(
+            " Nueva conexión",
+            "connect",
+            self.abrir_ventana_login
+        )
+        self.btn_procesos = self.crear_boton_con_icono(
+            " Procesos",
+            "processes",
+            self.mostrar_procesos,
+            False
+        )
+        self.btn_recursos = self.crear_boton_con_icono(
+            " Recursos",
+            "resources",
+            self.mostrar_recursos,
+            False
+        )
+        self.btn_iniciar = self.crear_boton_con_icono(
+            " Iniciar Proceso",
+            "start",
+            self.abrir_ventana_iniciar,
+            False
+        )
+        self.btn_matar = self.crear_boton_con_icono(
+            " Matar Proceso",
+            "kill",
+            self.abrir_ventana_matar,
+            False
+        )
+        self.btn_logs = self.crear_boton_con_icono(
+            " Ver Logs",
+            "logs",
+            self.mostrar_logs,
+            False
+        )
+        self.btn_cerrar_pestana = self.crear_boton_con_icono(
+            " Cerrar pestaña",
+            "close",
+            self.cerrar_pestana_activa,
+            False
+        )
 
-    def crear_boton(self, texto, comando, activo=True):
+    def crear_boton_con_icono(self, texto, icono_nombre, comando, activo=True, size=(24,24)):
+        """Crea un botón con icono cargado desde el gestor"""
+        icono = self.icon_manager.load_icon(icono_nombre, size)
         boton = ctk.CTkButton(
             self.menu,
             text=texto,
+            image=icono,
+            compound="left",
             fg_color="transparent",
             text_color="white",
             hover_color=COLOR_HOVER,
@@ -106,7 +149,6 @@ class App(ctk.CTk):
         self.tabview.pack(expand=True, fill="both")
 
     def nueva_pestana(self, cliente, ip, usuario, cert_path):
-        """Crea una nueva pestaña con el servidor conectado."""
         base = f"{ip} - {usuario}"
         nombre = base
         contador = 1
@@ -116,12 +158,13 @@ class App(ctk.CTk):
 
         self.tabview.add(nombre)
         pestana_frame = self.tabview.tab(nombre)
-        pestana = PestanaServidor(pestana_frame, cliente, ip, usuario, self.mostrar_alerta)
+        pestana = PestanaServidor(pestana_frame, cliente, ip, usuario, self.icon_manager, self.mostrar_alerta)
         pestana.pack(expand=True, fill="both")
 
         self.pestanas[nombre] = pestana
         self.activar_botones_servidor()
         self.actualizar_barra_estado()
+
 
     def pestana_activa(self):
         nombre = self.tabview.get()
@@ -190,7 +233,8 @@ class App(ctk.CTk):
         if not pestana:
             return
         if self.ventana_iniciar is None or not self.ventana_iniciar.winfo_exists():
-            self.ventana_iniciar = VentanaIniciar(self, pestana.cliente)
+            # PASAR self.icon_manager
+            self.ventana_iniciar = VentanaIniciar(self, pestana.cliente, self.icon_manager)
         else:
             self.ventana_iniciar.focus()
 
@@ -199,13 +243,14 @@ class App(ctk.CTk):
         if not pestana:
             return
         if self.ventana_matar is None or not self.ventana_matar.winfo_exists():
-            self.ventana_matar = VentanaMatar(self, pestana.cliente)
+            # PASAR self.icon_manager
+            self.ventana_matar = VentanaMatar(self, pestana.cliente, self.icon_manager)
         else:
             self.ventana_matar.focus()
 
     def abrir_ventana_login(self):
         if self.ventana_login is None or not self.ventana_login.winfo_exists():
-            self.ventana_login = VentanaLogin(self, self.nueva_pestana)
+            self.ventana_login = VentanaLogin(self, self.nueva_pestana, self.icon_manager)
         else:
             self.ventana_login.focus()
 

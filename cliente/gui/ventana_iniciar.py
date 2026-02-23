@@ -1,16 +1,18 @@
+# cliente/gui/ventana_iniciar.py
 import customtkinter as ctk
 import threading
 from cliente.utils import centrar_ventana
 from cliente.constantes import COLOR_BOTONES, COLOR_HOVER
 from cliente import acciones
 from .mensaje_personalizado import MensajePersonalizado
-from cliente.logger import registrar_log  # <-- nuevo
+from cliente.logger import registrar_log
 
 class VentanaIniciar(ctk.CTkToplevel):
-    def __init__(self, parent, cliente):
+    def __init__(self, parent, cliente, icon_manager):
         super().__init__(parent)
         self.parent = parent
         self.cliente = cliente
+        self.icon_manager = icon_manager
         self.procesando = False
         self.title("Iniciar proceso")
         centrar_ventana(self, 350, 200)
@@ -19,6 +21,7 @@ class VentanaIniciar(ctk.CTkToplevel):
         self.focus()
         self.crear_widgets()
         self.protocol("WM_DELETE_WINDOW", self.cerrar_seguro)
+        self.icon_manager.set_window_icon(self, "start")
 
     def crear_widgets(self):
         self.label = ctk.CTkLabel(self, text="Comando")
@@ -52,16 +55,36 @@ class VentanaIniciar(ctk.CTkToplevel):
                 if data.get("estado") == "ok":
                     pid = data.get('pid')
                     mensaje = f"Proceso iniciado correctamente.\nPID: {pid}"
-                    self.after(0, lambda m=mensaje: MensajePersonalizado(self.parent, "Éxito", m, tipo="exito"))
+                    self.after(0, lambda m=mensaje: MensajePersonalizado(
+                        self.parent, 
+                        "Éxito", 
+                        m, 
+                        tipo="exito",
+                        icon_manager=self.icon_manager
+                    ))
                     registrar_log(f"Proceso iniciado: '{comando}' (PID {pid})")
                 else:
                     error_msg = data.get("mensaje", "Error desconocido")
-                    self.after(0, lambda e=error_msg: MensajePersonalizado(self.parent, "Error", f"No se pudo iniciar el proceso:\n{e}", tipo="error"))
+                    self.after(0, lambda e=error_msg: MensajePersonalizado(
+                        self.parent, 
+                        "Error", 
+                        f"No se pudo iniciar el proceso:\n{e}", 
+                        tipo="error",
+                        icon_manager=self.icon_manager
+                    ))
                     registrar_log(f"Error al iniciar proceso '{comando}': {error_msg}")
             except Exception as e:
-                self.after(0, lambda e=e: MensajePersonalizado(self.parent, "Error", f"Excepción: {e}", tipo="error"))
+                self.after(0, lambda e=e: MensajePersonalizado(
+                    self.parent, 
+                    "Error", 
+                    f"Excepción: {e}", 
+                    tipo="error",
+                    icon_manager=self.icon_manager
+                ))
                 registrar_log(f"Excepción al iniciar proceso '{comando}': {e}")
             finally:
                 self.after(500, self.cerrar_seguro)
+
+    
 
         threading.Thread(target=tarea, daemon=True).start()
