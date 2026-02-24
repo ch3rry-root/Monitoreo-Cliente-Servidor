@@ -26,58 +26,10 @@ Terminar procesos mediante PID
 Notificaciones cuando:
 
 CPU > 90%
-
 Memoria > 95%
 (sin repeticiones molestas).
 
 📝 Registro de actividades
 Login, acciones y errores almacenados localmente y visibles desde el visor de logs
 
-🧹 Cierre limpio
-Detención automática de monitoreo al cerrar pestañas o la aplicación.
 
-📋 Requisitos previos
-General
-
-Python 3.8+
-
-Servidor
-
-Linux (recomendado Ubuntu)
-
-Puerto 5000 abierto
-
-Cliente
-
-Windows
-
-Archivo de certificado del servidor (server.crt)
-
-🚀 Instalación y configuración
-
-1️⃣ Clonar repositorio
-git clone https://github.com/tu-usuario/sistema-monitoreo-distribuido.git
-cd sistema-monitoreo-distribuido
-2️⃣ Instalar dependencias
-pip install -r requirements.txt
-3️⃣ Generar certificados autofirmados (Servidor)
-openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt -days 365 -nodes
-4️⃣ Configurar servidor
-
-Copia:
-
-server.crt
-server.key
-
-al mismo directorio que servidor_seguro.py.
-
-(Opcional) Cambia credenciales por defecto:
-
-USUARIO_VALIDO = "admin"
-PASSWORD_HASH = "..."
-
-Ejecutar servidor:
-
-python servidor_seguro.py
-5️⃣ Ejecutar cliente
-python -m cliente.main
