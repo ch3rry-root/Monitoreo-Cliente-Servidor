@@ -1,4 +1,4 @@
-# cliente/logger.py
+
 import datetime
 import os
 from pathlib import Path

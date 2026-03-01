@@ -1,43 +1,77 @@
-# cliente/gui/panel_logs.py
 import customtkinter as ctk
+
+from cliente.constantes import (
+    COLOR_INPUT,
+    COLOR_MUTED,
+    COLOR_PRIMARIO,
+    COLOR_TEXTO,
+    FONDO_PANEL,
+)
 from cliente.logger import obtener_ultimos
+
 
 class PanelLogs(ctk.CTkFrame):
     def __init__(self, parent):
         super().__init__(parent, fg_color="transparent")
-        self.crear_widgets()
+        self._crear_layout()
         self.cargar_logs()
 
-    def crear_widgets(self):
-        # Frame superior con botón de refrescar
-        top_frame = ctk.CTkFrame(self, fg_color="transparent")
-        top_frame.pack(fill="x", pady=(0, 10))
+    def _crear_layout(self):
+        top = ctk.CTkFrame(self, fg_color="transparent")
+        top.pack(fill="x", pady=(0, 10))
+
+        ctk.CTkLabel(
+            top,
+            text="REGISTROS DEL SISTEMA",
+            text_color=COLOR_TEXTO,
+            font=ctk.CTkFont(size=15, weight="bold"),
+        ).pack(side="left")
+
+        self.lbl_count = ctk.CTkLabel(
+            top,
+            text="0 lineas",
+            text_color=COLOR_MUTED,
+            font=ctk.CTkFont(size=12),
+        )
+        self.lbl_count.pack(side="right", padx=(0, 8))
 
         self.btn_refresh = ctk.CTkButton(
-            top_frame,
-            text="Refrescar",
+            top,
+            text="Actualizar",
+            width=110,
+            height=32,
+            corner_radius=7,
+            fg_color=COLOR_PRIMARIO,
+            hover_color="#2BB3FF",
+            text_color="#FFFFFF",
             command=self.cargar_logs,
-            width=100
         )
-        self.btn_refresh.pack(side="left")
+        self.btn_refresh.pack(side="right", padx=(0, 10))
 
-        # Área de texto con scroll
+        shell = ctk.CTkFrame(self, fg_color=FONDO_PANEL, corner_radius=8)
+        shell.pack(fill="both", expand=True)
+
         self.textbox = ctk.CTkTextbox(
-            self,
-            font=("Consolas", 12),
-            wrap="word"
+            shell,
+            fg_color=COLOR_INPUT,
+            text_color=COLOR_TEXTO,
+            font=("Consolas", 11),
+            wrap="none",
+            border_width=0,
+            corner_radius=6,
         )
-        self.textbox.pack(expand=True, fill="both")
+        self.textbox.pack(fill="both", expand=True, padx=12, pady=12)
 
     def cargar_logs(self):
-        """Carga las últimas líneas del log en el textbox."""
-        lineas = obtener_ultimos(200)  # Últimas 200 líneas
-        contenido = "".join(lineas) if lineas else "No hay registros aún."
+        lineas = obtener_ultimos(250)
+        contenido = "".join(lineas) if lineas else "SIN DATOS"
 
+        self.textbox.configure(state="normal")
         self.textbox.delete("1.0", "end")
         self.textbox.insert("1.0", contenido)
-        self.textbox.see("end")  # Scroll al final
+        self.textbox.configure(state="disabled")
+
+        self.lbl_count.configure(text=f"{len(lineas)} lineas")
 
     def detener(self):
-        """No hay actualizaciones periódicas, pero lo dejamos por compatibilidad."""
         pass
